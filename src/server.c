@@ -6287,7 +6287,7 @@ redisTestProc *getTestProcByName(const char *name) {
 }
 #endif
 
-int main(int argc, char **argv) {
+int main2(int argc, char **argv) {
     struct timeval tv;
     int j;
     char config_from_stdin = 0;
