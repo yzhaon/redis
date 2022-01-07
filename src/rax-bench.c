@@ -25,7 +25,6 @@ void bench() {
 	long long endtime = ustime();
 	printf("rax tree nodes %llu\r\n", tree->numnodes);
 	printf("rax size %llu\r\n", raxSize(tree));
-	printf("rax alloc %llu\r\n", raxAllocSize(tree));
 	printf("start time %lld\r\n", starttime);
 	printf("end time %lld\r\n", endtime);
 	printf("delta time us %lld\r\n", endtime - starttime);
@@ -44,7 +43,6 @@ void bench() {
 	endtime = ustime();
 	printf("rax tree nodes %llu\r\n", tree->numnodes);
 	printf("rax size %llu\r\n", raxSize(tree));
-	printf("rax alloc %llu\r\n", raxAllocSize(tree));
 	printf("start time %lld\r\n", starttime);
 	printf("end time %lld\r\n", endtime);
 	printf("delta time us %lld\r\n", endtime - starttime);
