@@ -47,6 +47,8 @@ void bench() {
 	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
 	printf("avg time*1000 us%lld\r\n", (endtime - starttime)*1000 / CYCLES);
 	printf("counters %d %d \r\n", counter1, counter2);
+	long long read_time_ns = (endtime - starttime) * 1000;
+	long long read_time_avg_ns = read_time_ns / CYCLES / 2;
 	
 	
 	
@@ -64,6 +66,8 @@ void bench() {
 	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
 	printf("avg time*1000 us%lld\r\n", (endtime - starttime) * 1000 / CYCLES);
 	long long run1n = (endtime - starttime);
+	long long rax_insert_1n_ns = (endtime - starttime) * 1000;
+	long long rax_insert_1n_avg_ns = rax_insert_1n_ns / CYCLES;
 
 
 
@@ -89,9 +93,131 @@ void bench() {
 	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
 	printf("avg time*1000 us%lld\r\n", (endtime - starttime)*1000 / CYCLES);
 	long long run2n = (endtime - starttime);
+	long long rax_insert_2n_ns = (endtime - starttime) * 1000;
+	long long rax_insert_2n_avg_ns = rax_insert_2n_ns / CYCLES / 2;
 
 	printf("normalized run time us 2N - N %lld\r\n", run2n - run1n);
 	printf("normalized avg run time*1000 us 2N - N / N %lld\r\n", (run2n - run1n)*1000/CYCLES);
+	long long rax_insert_delta_ns = rax_insert_2n_ns - rax_insert_1n_ns;
+	long long rax_insert_delta_avg_ns = rax_insert_delta_ns / CYCLES;
+	
+	
+	
+	starttime = ustime();
+	for (long long i=0; i<CYCLES; i++) {
+		raxFind(tree, keys + (i * KEYLEN), KEYLEN);
+	}
+	endtime = ustime();
+	printf("\r\n1N rax tree lookup run\r\n");
+	printf("rax tree nodes %llu\r\n", tree->numnodes);
+	printf("rax size %llu\r\n", raxSize(tree));
+	printf("start time %lld\r\n", starttime);
+	printf("end time %lld\r\n", endtime);
+	printf("delta time us %lld\r\n", endtime - starttime);
+	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime) * 1000 / CYCLES);
+	run1n = (endtime - starttime);
+	long long rax_lookup_1n_ns = (endtime - starttime) * 1000;
+	long long rax_lookup_1n_avg_ns = rax_lookup_1n_ns / CYCLES;
+
+
+
+
+	starttime = ustime();
+	for (long long i=0; i<CYCLES; i++) {
+		raxFind(tree2, keys + (i * KEYLEN), KEYLEN);
+	}
+	
+	for (long long i=0; i<CYCLES; i++) {
+		raxFind(tree3, keys + (CYCLES + i * KEYLEN), KEYLEN);
+	}
+	
+	endtime = ustime();
+	printf("\r\n2N rax tree run\r\n");
+	printf("rax tree nodes %llu %llu\r\n", tree2->numnodes, tree3->numnodes);
+	printf("rax size %llu %llu\r\n", raxSize(tree2), raxSize(tree3));
+	printf("start time %lld\r\n", starttime);
+	printf("end time %lld\r\n", endtime);
+	printf("delta time us %lld\r\n", endtime - starttime);
+	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime)*1000 / CYCLES);
+	run2n = (endtime - starttime);
+	long long rax_lookup_2n_ns = (endtime - starttime) * 1000;
+	long long rax_lookup_2n_avg_ns = rax_lookup_2n_ns / CYCLES / 2;
+
+	printf("normalized run time us 2N - N %lld\r\n", run2n - run1n);
+	printf("normalized avg run time*1000 us 2N - N / N %lld\r\n", (run2n - run1n)*1000/CYCLES);
+	long long rax_lookup_delta_ns = rax_lookup_2n_ns - rax_lookup_1n_ns;
+	long long rax_lookup_delta_avg_ns = rax_lookup_delta_ns / CYCLES;
+	
+	
+	
+	starttime = ustime();
+	for (long long i=0; i<CYCLES; i++) {
+		raxRemove(tree, keys + (i * KEYLEN), KEYLEN, NULL);
+	}
+	endtime = ustime();
+	printf("\r\n1N rax tree delete run\r\n");
+	printf("rax tree nodes %llu\r\n", tree->numnodes);
+	printf("rax size %llu\r\n", raxSize(tree));
+	printf("start time %lld\r\n", starttime);
+	printf("end time %lld\r\n", endtime);
+	printf("delta time us %lld\r\n", endtime - starttime);
+	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime) * 1000 / CYCLES);
+	run1n = (endtime - starttime);
+	long long rax_delete_1n_ns = (endtime - starttime) * 1000;
+	long long rax_delete_1n_avg_ns = rax_delete_1n_ns / CYCLES;
+
+
+
+
+	starttime = ustime();
+	for (long long i=0; i<CYCLES; i++) {
+		raxRemove(tree2, keys + (i * KEYLEN), KEYLEN, NULL);
+	}
+	
+	for (long long i=0; i<CYCLES; i++) {
+		raxRemove(tree3, keys + (CYCLES + i * KEYLEN), KEYLEN, NULL);
+	}
+	
+	endtime = ustime();
+	printf("\r\n2N rax tree run\r\n");
+	printf("rax tree nodes %llu %llu\r\n", tree2->numnodes, tree3->numnodes);
+	printf("rax size %llu %llu\r\n", raxSize(tree2), raxSize(tree3));
+	printf("start time %lld\r\n", starttime);
+	printf("end time %lld\r\n", endtime);
+	printf("delta time us %lld\r\n", endtime - starttime);
+	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime)*1000 / CYCLES);
+	run2n = (endtime - starttime);
+	long long rax_delete_2n_ns = (endtime - starttime) * 1000;
+	long long rax_delete_2n_avg_ns = rax_delete_2n_ns / CYCLES / 2;
+
+	printf("normalized run time us 2N - N %lld\r\n", run2n - run1n);
+	printf("normalized avg run time*1000 us 2N - N / N %lld\r\n", (run2n - run1n)*1000/CYCLES);
+	long long rax_delete_delta_ns = rax_delete_2n_ns - rax_delete_1n_ns;
+	long long rax_delete_delta_avg_ns = rax_delete_delta_ns / CYCLES;
+
+	printf("type,keylen,cycles,key read time ns,key read time avg ns,rax tree op ns,rax tree op avg ns,2N rax tree op ns,2N rax tree op avg ns,2N - N ns,(2N - N)/N ns\r\n");
+	printf("%s,%d,%d,", "raxInsert", KEYLEN, CYCLES);
+	printf("%lld,%lld,", read_time_ns, read_time_avg_ns);
+	printf("%lld,%lld,", rax_insert_1n_ns, rax_insert_1n_avg_ns);
+	printf("%lld,%lld,", rax_insert_2n_ns, rax_insert_2n_avg_ns);
+	printf("%lld,%lld,", rax_insert_delta_ns, rax_insert_delta_avg_ns);
+	printf("\r\n");	
+	printf("%s,%d,%d,", "raxFind", KEYLEN, CYCLES);
+	printf("%lld,%lld,", read_time_ns, read_time_avg_ns);
+	printf("%lld,%lld,", rax_lookup_1n_ns, rax_lookup_1n_avg_ns);
+	printf("%lld,%lld,", rax_lookup_2n_ns, rax_lookup_2n_avg_ns);
+	printf("%lld,%lld,", rax_lookup_delta_ns, rax_lookup_delta_avg_ns);
+	printf("\r\n");
+	printf("%s,%d,%d,", "raxRemove", KEYLEN, CYCLES);
+	printf("%lld,%lld,", read_time_ns, read_time_avg_ns);
+	printf("%lld,%lld,", rax_delete_1n_ns, rax_delete_1n_avg_ns);
+	printf("%lld,%lld,", rax_delete_2n_ns, rax_delete_2n_avg_ns);
+	printf("%lld,%lld,", rax_delete_delta_ns, rax_delete_delta_avg_ns);
+	printf("\r\n");
 }
 
 int main() {
