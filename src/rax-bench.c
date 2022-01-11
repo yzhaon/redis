@@ -6,22 +6,21 @@
 long long ustime(void);
 long long mstime(void);
 
+#define CYCLES (6*10*1000*1000)
 #define KEYLEN 32
 
 void bench() {
 	rax *tree = raxNew();
 
-	int cycles = 6*10*1000*1000;
 	long long starttime;
 	long long endtime;
 
-	char **keys = malloc(sizeof(char *) * cycles * 2 );
+	unsigned char *keys = malloc(sizeof(unsigned char) * KEYLEN * CYCLES * 2 );
 	starttime = ustime();
-	for (int i=0; i<cycles * 2; i++) {
-		keys[i] = malloc(sizeof(char) * KEYLEN);
-		for (int j=0; j<KEYLEN; j++) {
-			char randc = rand() % 256;
-			keys[i][j] = randc;
+	for (long long i=0; i<CYCLES * 2; i++) {
+		for (long long j=0; j<KEYLEN; j++) {
+			unsigned char randc = rand() % 256;
+			keys[i * KEYLEN + j] = randc;
 		}
 	}
 	endtime = ustime();
@@ -30,15 +29,15 @@ void bench() {
 	printf("end time %lld\r\n", endtime);
 	printf("delta time us %lld\r\n", endtime - starttime);
 	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
-	printf("avg time*1000 us%llu\r\n", (endtime - starttime)*1000 / cycles);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime)*1000 / CYCLES);
 
 
 	starttime = ustime();
 	int counter1 = 0;
 	int counter2 = 0;
-	for (int i=0; i<cycles * 2; i++) {
-		if (keys[i][0] == ' ') counter1++;
-		if (keys[i][0] != ' ') counter2++;
+	for (long long i=0; i<CYCLES * 2; i++) {
+		if (keys[i * KEYLEN + 0] == ' ') counter1++;
+		if (keys[i * KEYLEN + 0] != ' ') counter2++;
 	}
 	endtime = ustime();
 	printf("\r\nrandom key read/load time \r\n");
@@ -46,14 +45,14 @@ void bench() {
 	printf("end time %lld\r\n", endtime);
 	printf("delta time us %lld\r\n", endtime - starttime);
 	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
-	printf("avg time*1000 us%llu\r\n", (endtime - starttime)*1000 / cycles);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime)*1000 / CYCLES);
 	printf("counters %d %d \r\n", counter1, counter2);
 	
 	
 	
 	starttime = ustime();
-	for (int i=0; i<cycles; i++) {
-		raxInsert(tree, keys[i], KEYLEN, NULL, NULL);
+	for (long long i=0; i<CYCLES; i++) {
+		raxInsert(tree, keys + (i * KEYLEN), KEYLEN, NULL, NULL);
 	}
 	endtime = ustime();
 	printf("\r\n1N rax tree run\r\n");
@@ -64,7 +63,7 @@ void bench() {
 	printf("end time %lld\r\n", endtime);
 	printf("delta time us %lld\r\n", endtime - starttime);
 	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
-	printf("avg time*1000 us%llu\r\n", (endtime - starttime) * 1000 / cycles);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime) * 1000 / CYCLES);
 	long long run1n = (endtime - starttime);
 
 
@@ -73,12 +72,12 @@ void bench() {
 	rax *tree2 = raxNew();
 	rax *tree3 = raxNew();
 	starttime = ustime();
-	for (int i=0; i<cycles; i++) {
-		raxInsert(tree2, keys[i], KEYLEN, NULL, NULL);
+	for (long long i=0; i<CYCLES; i++) {
+		raxInsert(tree2, keys + (i * KEYLEN), KEYLEN, NULL, NULL);
 	}
 	
-	for (int i=0; i<cycles; i++) {
-		raxInsert(tree3, keys[i + cycles], KEYLEN, NULL, NULL);
+	for (long long i=0; i<CYCLES; i++) {
+		raxInsert(tree3, keys + (CYCLES + i * KEYLEN), KEYLEN, NULL, NULL);
 	}
 	
 	endtime = ustime();
@@ -89,11 +88,11 @@ void bench() {
 	printf("end time %lld\r\n", endtime);
 	printf("delta time us %lld\r\n", endtime - starttime);
 	printf("delta time ms %lld\r\n", (endtime - starttime)/1000);
-	printf("avg time*1000 us%llu\r\n", (endtime - starttime)*1000 / cycles);
+	printf("avg time*1000 us%lld\r\n", (endtime - starttime)*1000 / CYCLES);
 	long long run2n = (endtime - starttime);
 
-	printf("normalized run time us 2N - N %llu\r\n", run2n - run1n);
-	printf("normalized avg run time*1000 us 2N - N / N %llu\r\n", (run2n - run1n)*1000/cycles);
+	printf("normalized run time us 2N - N %lld\r\n", run2n - run1n);
+	printf("normalized avg run time*1000 us 2N - N / N %lld\r\n", (run2n - run1n)*1000/CYCLES);
 }
 
 int main() {
