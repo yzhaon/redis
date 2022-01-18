@@ -8,12 +8,18 @@ long long mstime(void);
 
 #define CYCLES (6*10*1000*1000)
 #define KEYLEN 32
+#define LOG_CENTILES_START 2
 
 void bench() {
 	rax *tree = raxNew();
 
 	long long starttime;
 	long long endtime;
+	unsigned long long log_centiles[100] = {0};
+	unsigned long long log_centiles_avg[100] = {0};
+	int log_centiles_index = 0;
+	unsigned long long log_centiles_modulus = LOG_CENTILES_START;
+	long long prev_index = 0;
 
 	unsigned char *keys = malloc(sizeof(unsigned char) * KEYLEN * CYCLES * 2 );
 	starttime = ustime();
@@ -54,6 +60,17 @@ void bench() {
 	
 	starttime = ustime();
 	for (long long i=0; i<CYCLES; i++) {
+		if (i % log_centiles_modulus == 0) {
+			endtime = ustime();
+			log_centiles[log_centiles_index] = (endtime - starttime) * 1000;
+
+			log_centiles_avg[log_centiles_index] = (i - prev_index);
+			prev_index = i;
+			
+			starttime = endtime;
+			log_centiles_index++;
+			log_centiles_modulus = log_centiles_modulus * 2;
+		}
 		raxInsert(tree, keys + (i * KEYLEN), KEYLEN, NULL, NULL);
 	}
 	endtime = ustime();
@@ -68,6 +85,24 @@ void bench() {
 	long long run1n = (endtime - starttime);
 	long long rax_insert_1n_ns = (endtime - starttime) * 1000;
 	long long rax_insert_1n_avg_ns = rax_insert_1n_ns / CYCLES;
+
+	printf("log_centiles\r\n");
+	log_centiles_index = 0;
+	log_centiles_modulus = LOG_CENTILES_START;
+	for (int i = 0; i<100; i++) {
+		printf("%llu,", (i + 1) * log_centiles_modulus);
+		log_centiles_modulus = log_centiles_modulus * 2;
+	}
+	printf("\r\n");
+	for (int i = 0; i<100; i++) {
+		printf("%llu,", log_centiles[i]);
+	}
+	printf("\r\n");
+	for (int i = 0; i<100; i++) {
+		printf("%llu,", log_centiles_avg[i]);
+	}
+
+	printf("\r\nlog_centiles_done\r\n");
 
 
 
