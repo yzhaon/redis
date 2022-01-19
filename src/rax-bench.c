@@ -10,14 +10,16 @@ long long mstime(void);
 
 #define CYCLES (6*10*1000*1000)
 #define KEYLEN 32
-#define LOG_CENTILES_START 2
+#define LOG_CENTILES_START 1
 
 typedef struct benchmark_data {
 	long long starttime;
 	long long endtime;
-	unsigned long long log_centiles[100];
-	unsigned long long log_centiles_avg[100];
+	unsigned long long log_centiles[50];
+	unsigned long long log_centiles_avg[50];
+	unsigned long long log_centiles_index_save[50];
 	int log_centiles_index;
+	int log_centiles_index_end;
 	unsigned long long log_centiles_modulus;
 	long long prev_index;
 } benchmark_data;
@@ -25,6 +27,8 @@ typedef struct benchmark_data {
 unsigned long long time_delta_ns(benchmark_data *data) {
 	return (data->endtime - data->starttime) * 1000;
 }
+
+
 void print_run_data(benchmark_data *data) {
 	// printf("start time %lld\r\n", data->starttime);
 	// printf("end time %lld\r\n", data->endtime);
@@ -34,19 +38,18 @@ void print_run_data(benchmark_data *data) {
 }
 
 void log_centiles_init(benchmark_data *data) {
-	memset(data, 0, sizeof(benchmark_data));
+	data->log_centiles_index = 0;
 	data->log_centiles_modulus = LOG_CENTILES_START;
+	data->prev_index = 0;
 }
 
 void log_centiles_print(benchmark_data *data) {
 	printf("log_centiles\r\n");
-	data->log_centiles_index = 0;
-	data->log_centiles_modulus = LOG_CENTILES_START;
-	for (int i = 0; i<100; i++) {
+	for (int i = 0; i<50; i++) {
 		printf("%llu,", data->log_centiles[i]);
 	}
 	printf("\r\n");
-	for (int i = 0; i<100; i++) {
+	for (int i = 0; i<50; i++) {
 		printf("%llu,", data->log_centiles_avg[i]);
 	}
 
@@ -62,7 +65,12 @@ void log_centiles_update(benchmark_data *data, long long index) {
 	
 	data->starttime = data->endtime;
 	data->log_centiles_index++;
+	if (data->log_centiles_index > data->log_centiles_index_end) {
+		data->log_centiles_index_end = data->log_centiles_index;
+	}
 	data->log_centiles_modulus = data->log_centiles_modulus * 2;
+
+	data->log_centiles_index_save[data->log_centiles_index] = index;
 }
 
 void print_tree_data(rax *tree, char *prefix) {
@@ -70,18 +78,31 @@ void print_tree_data(rax *tree, char *prefix) {
 	printf("%s rax size %llu\r\n", prefix, raxSize(tree));
 }
 
+void log_centiles_init_rev(benchmark_data *data) {
+	data->log_centiles_index = data->log_centiles_index_end;
+	data->prev_index = CYCLES;
+	printf("end %d %lld ", data->log_centiles_index, data->log_centiles_index_save[data->log_centiles_index]);
+}
+
+void log_centiles_update_rev(benchmark_data *data, long long index) {
+	data->endtime = ustime();
+	data->log_centiles[data->log_centiles_index + 1] = time_delta_ns(data);
+
+	data->log_centiles_avg[data->log_centiles_index] = (data->prev_index - index);
+	data->prev_index = index;
+
+	data->starttime = data->endtime;
+	data->log_centiles_index--;
+
+
+}
 
 
 void bench() {
 	rax *tree = raxNew();
 
-	long long starttime;
-	long long endtime;
-	unsigned long long log_centiles[100] = {0};
-	unsigned long long log_centiles_avg[100] = {0};
-	int log_centiles_index = 0;
-	unsigned long long log_centiles_modulus = LOG_CENTILES_START;
-	long long prev_index = 0;
+	long long loop_starttime;
+	long long loop_endtime;
 
 	benchmark_data data = {0};
 
@@ -131,6 +152,7 @@ void bench() {
 
 	log_centiles_init(&data);
 	data.starttime = ustime();
+	loop_starttime = ustime();
 	for (long long i=0; i<CYCLES; i++) {
 		if (i % data.log_centiles_modulus == 0) {
 			log_centiles_update(&data, i);
@@ -138,13 +160,14 @@ void bench() {
 		raxInsert(tree, keys + (i * KEYLEN), KEYLEN, NULL, NULL);
 	}
 	data.endtime = ustime();
+	loop_endtime = ustime();
 	printf("\r\n1N rax tree insert run\r\n");
 	printf("rax tree nodes %llu\r\n", tree->numnodes);
 	print_tree_data(tree, "insert");
 	print_run_data(&data);
 	log_centiles_print(&data);
-	long long run1n = time_delta_ns(&data);
-	long long rax_insert_1n_ns = time_delta_ns(&data);
+	
+	long long rax_insert_1n_ns = (loop_endtime - loop_starttime) *1000;
 	long long rax_insert_1n_avg_ns = rax_insert_1n_ns / CYCLES;
 
 
@@ -153,6 +176,7 @@ void bench() {
 	
 	log_centiles_init(&data);
 	data.starttime = ustime();
+	loop_starttime = ustime();
 	for (long long i=0; i<CYCLES; i++) {
 		if (i % data.log_centiles_modulus == 0) {
 			log_centiles_update(&data, i);
@@ -160,34 +184,36 @@ void bench() {
 		raxFind(tree, keys + (i * KEYLEN), KEYLEN);
 	}
 	data.endtime = ustime();
+	loop_endtime = ustime();
 	printf("\r\n1N rax tree lookup run\r\n");
 	print_tree_data(tree, "find");
 	print_run_data(&data);
 	log_centiles_print(&data);
-	run1n = time_delta_ns(&data);
-	long long rax_lookup_1n_ns = time_delta_ns(&data);
+
+	long long rax_lookup_1n_ns = (loop_endtime - loop_starttime) *1000;
 	long long rax_lookup_1n_avg_ns = rax_lookup_1n_ns / CYCLES;
 
 
 
 	
 	
-	
-	log_centiles_init(&data);
+	log_centiles_init_rev(&data);
 	data.starttime = ustime();
-	for (long long i=0; i<CYCLES; i++) {
-		if (i % data.log_centiles_modulus == 0) {
-			log_centiles_update(&data, i);
-		}
+	loop_starttime = ustime();
+	for (long long i=CYCLES - 1; i>=0; i--) {
 		raxRemove(tree, keys + (i * KEYLEN), KEYLEN, NULL);
+		if (i == data.log_centiles_index_save[data.log_centiles_index]) {
+			log_centiles_update_rev(&data, i);
+		}
 	}
 	data.endtime = ustime();
+	loop_endtime = ustime();
 	printf("\r\n1N rax tree delete run\r\n");
 	print_tree_data(tree, "remove");
 	print_run_data(&data);
 	log_centiles_print(&data);
-	run1n = time_delta_ns(&data);
-	long long rax_delete_1n_ns = time_delta_ns(&data);
+
+	long long rax_delete_1n_ns = (loop_endtime - loop_starttime) *1000;
 	long long rax_delete_1n_avg_ns = rax_delete_1n_ns / CYCLES;
 
 
